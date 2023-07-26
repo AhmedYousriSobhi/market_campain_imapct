@@ -5,6 +5,7 @@
 # Importing nessecary libararies and packages
 import pandas as pd
 import numpy as np
+import webcolors
 
 # Main function: Feature Engineer
 def feature_engineereing(_df:pd.DataFrame)->pd.DataFrame:
@@ -21,158 +22,140 @@ def feature_engineereing(_df:pd.DataFrame)->pd.DataFrame:
     # Create a copy of input dataframe
     df = _df.copy()
 
-    # Feature: Number of bedrooms per unit area
-    df['nbedrooms_per_area'] = df['number_of_bedrooms'] / df['unit_area']
+    # Feature: Discount
+    df = calculate_discount(df, 'ratio')
 
-    # Feature: down payment time to delivery percentage
-    df['downpayment_per_delivery_time'] = df['down_payment'] / df['time_to_delivery']
+    # Feature: Closest color to RGB values
+    df = extract_closest_color(df)
 
-    # Feature: Time to delivert per unit area
-    df['deliverytime_per_area'] = df['time_to_delivery'] / df['unit_area']
+    # Feature: Time based features
+    df = extract_time_based_features(df, 'retailweek')
 
-    # Feature: Average time_to_delivery for developers
-    df = calc_average_delivery_time(df, 'english_prop_type_name', 'developer_name')
+    return df
 
-    # Feature: Average tiem_to_delivery for Area
-    df = calc_average_delivery_time(df, 'english_prop_type_name', 'english_area_name')
+def calculate_discount(data:pd.DataFrame, target_col:str)->pd.DataFrame:
+    """
+        Used to calculate discount feature from ratio column.
 
-    # Feature: developer performance
-    df = calc_feature_performance(df, 'english_prop_type_name', 'developer_name')
+        PARAMETERS
+            data: pandas dataframe, input dataframe.
+            target_col: str, target ratio column.
+        
+        OUTPUT
+            pandas DataFrame with extracted features
+    """
 
-    # Feature: area performance
-    df = calc_feature_performance(df, 'english_prop_type_name', 'english_area_name')
+    # Make a copy of input dataset
+    df_copy = data.copy()
 
-    # Feature: developer market share
-    df = calc_feature_market_share(df, 'english_prop_type_name', 'developer_name')
+    df_copy['discount'] = 1- df_copy['ratio']
 
-    # Feature: area market share
-    df = calc_feature_market_share(df, 'english_prop_type_name', 'english_area_name')
+    # Drop unnessary column
+    df_copy.drop('ratio', axis=1, inplace=True)
 
-    # Drop unsed columns
-    df.drop(['detailed_property_id'], axis=1, inplace=True)
+    return df_copy
     
-    return df
-
-
-def calc_average_delivery_time(_df:pd.DataFrame, target_col:str, feature_col:str)->pd.DataFrame:
+def closest_colour(requested_colour:tuple)->str:
     """
-        Used to calculate the averate time_to_delivery for target_col per each input features.
+        Used to calculate the closest color based on RGB values.
 
         PARAMETERS
-            _df: pandas dataframe, input dataframe.
-            target_col: str, represent the target to which we calculate the average time.
-            feature_col: str, represent the feature over which we calculate each average time.
-
-        RETURN
-            pandas DataFrame with created features.
+            requested_colour: tuple, values of RGB.
+        
+        OUTPUT
+            str, the closest color name
     """
-
-    # Create a copy of input dataframe
-    df = _df.copy()
-
-    df_average_time_to_delivery = (
-        df.pivot_table(
-            index=feature_col, 
-            columns=target_col, 
-            values='time_to_delivery', 
-            aggfunc='mean'
-        )
-        .add_suffix(f"_{feature_col}_time")
-        .fillna(-1)
-        .reset_index()
-        .round()
-    )
-
-    # Merge it with original dataframe
-    df = df.merge(
-        df_average_time_to_delivery,
-        how='left',
-        on=feature_col
-    )
-
-    return df
+    min_colours = {}
+    for key, name in webcolors.CSS3_HEX_TO_NAMES.items():
+        r_c, g_c, b_c = webcolors.hex_to_rgb(key)
+        rd = (r_c - requested_colour[0]) ** 2
+        gd = (g_c - requested_colour[1]) ** 2
+        bd = (b_c - requested_colour[2]) ** 2
+        min_colours[(rd + gd + bd)] = name
+    return min_colours[min(min_colours.keys())]
 
 
-def calc_feature_performance(_df:pd.DataFrame, target_col:str, feature_col:str)->pd.DataFrame:
+def get_colour_name(requested_colour):
     """
-        Used to calculate the performance for feature_col per each input target_col.
+        Used to calculate the actual and closest color based on RGB values.
 
         PARAMETERS
-            _df: pandas dataframe, input dataframe.
-            target_col: str, represent the target to which we calculate the average time.
-            feature_col: str, represent the feature over which we calculate each average time.
-
-        RETURN
-            pandas DataFrame with created features.
+            requested_colour: tuple, values of RGB.
+        
+        OUTPUT
+            list of strings, the actual and closest color name
     """
-
-    # Create a copy of input dataframe
-    df = _df.copy()
-
-    df_property_percent = df.pivot_table(
-        index=feature_col, 
-        columns=target_col, 
-        values='detailed_property_id', 
-        aggfunc='count'
-    ).fillna(0)
-
-    # Calculate the percentage of each property type per developer
-    df_property_percent['total'] = df_property_percent.sum(axis=1)
-
-    df_property_percent = (
-        df_property_percent
-        .div(df_property_percent['total'], axis=0)
-        .drop('total', axis=1)
-        .add_suffix(f"_{feature_col}_perecntage")
-        .reset_index()
-    )
-
-    # Merge it with original dataframe
-    df = df.merge(
-        df_property_percent,
-        how='left',
-        on=[feature_col]
-    )
-
-    return df
+    try:
+        closest_name = actual_name = webcolors.rgb_to_name(requested_colour)
+    except ValueError:
+        closest_name = closest_colour(requested_colour)
+        actual_name = None
+    return actual_name, closest_name
 
 
-def calc_feature_market_share(_df:pd.DataFrame, target_col:str, feature_col:str)->pd.DataFrame:
+def extract_closest_color(data:pd.DataFrame)->pd.DataFrame:
     """
-        Used to calculate the market share for feature_col per each input target_col.
+        Used to extract closest color names based on RGB values.
 
         PARAMETERS
-            _df: pandas dataframe, input dataframe.
-            target_col: str, represent the target to which we calculate the average time.
-            feature_col: str, represent the feature over which we calculate each average time.
-
-        RETURN
-            pandas DataFrame with created features.
+            data: pandas dataframe, input dataframe.
+        
+        OUTPUT
+            pandas DataFrame with extracted colors
     """
+    
+    # Create a copy of color name
+    df_copy = data.copy()
 
-    # Create a copy of input dataframe
-    df = _df.copy()
+    # Define main/secondary colours
+    main_color_cols = ['rgb_r_main_col', 'rgb_g_main_col', 'rgb_b_main_col'] 
+    sec_color_cols = ['rgb_r_sec_col', 'rgb_g_sec_col', 'rgb_b_sec_col']
 
-    df_property_market_share = (
-       df.pivot_table(
-            index=feature_col, 
-            columns=target_col, 
-            values='detailed_property_id', 
-            aggfunc='count'
-        ).fillna(0)
-        .add_suffix(f"_{feature_col}_market_share")
+    # Calculate the closest color
+    df_copy['main_closest_color'] = (
+        df_copy[main_color_cols].apply(lambda row: tuple(row), axis=1)
+        .apply(get_colour_name)
+        .apply(lambda row: row[1])
     )
 
-    # Calculate the percentage of each property type per developer
-    df_sum = df_property_market_share.sum()
-
-    df_property_market_share = df_property_market_share/df_sum
-
-    # Merge with original dataframe
-    df = df.merge(
-        df_property_market_share.reset_index(),
-        how='left',
-        on=feature_col
+    df_copy['sec_closest_color'] = (
+        df_copy[sec_color_cols].apply(lambda row: tuple(row), axis=1)
+        .apply(get_colour_name)
+        .apply(lambda row: row[1])
     )
 
-    return df
+    # Drop unnessary columns
+    df_copy.drop(main_color_cols, axis=1, inplace=True)
+    df_copy.drop(sec_color_cols, axis=1, inplace=True)
+
+    return df_copy
+
+
+def extract_time_based_features(data:pd.DataFrame, ts_col:str)->pd.DataFrame:
+    """
+        Used to extract time based features from time series column.
+
+        PARAMETERS
+            data: pandas dataframe, input dataframe.
+            ts_col: str, target time series column.
+        
+        OUTPUT
+            pandas DataFrame with extracted features
+    """
+    
+    # make a copy of input dataframe
+    df_copy = data.copy()
+
+    # Make sure the target column is datetime format
+    df_copy[ts_col] = pd.to_datetime(df_copy[ts_col])
+
+    # Extract time based features
+    df_copy['year'] = df_copy[ts_col].dt.year
+    df_copy['month'] = df_copy[ts_col].dt.month
+    df_copy['day'] = df_copy[ts_col].dt.day
+    df_copy['dayofweek'] = df_copy[ts_col].dt.day_of_week
+
+    # drop timeseries column
+    df_copy.drop(ts_col, axis=1, inplace=True)
+
+    return df_copy

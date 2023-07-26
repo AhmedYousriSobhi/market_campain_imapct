@@ -1,11 +1,11 @@
 # Data Scientist Evaluation Task
 | Info | Description |
 |:-----:|:----------:|
-| Project Objective | Market Campain Analysis on Sport Company |
+| Project Objective | Market Campain Performance Analysis on Sport Company |
 | Assignee | Ahmed Yousri Sobhi |
 | Assignee's email | [ahmedyousrisobhi@gmail.com](ahmedyousrisobhi@gmail.com) |
 | Owener | Fixed Solutions |
-| StartLine | 20th June 2023 |
+| StartLine | 20th July 2023 |
 | DeadLine | Due date 26th July 2023|
 
 ## Project Structure

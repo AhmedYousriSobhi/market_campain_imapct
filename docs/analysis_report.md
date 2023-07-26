@@ -1,167 +1,223 @@
 # Fixed Solutions
-# Analysis Report: Sports Group Campaign Analysis
+# Analysis Report: Sports Group Marketing Campaign Performance
 
 ## Introduction
-The aim of this analysis report is to provide insights into the process of estimating offering time for properties in the context of Fixed Solution's business model. As a company specializing in managing properties for customers, accurately determining the appropriate offering time for properties is crucial for ensuring fair transactions and maintaining competitive advantage in the market.
+The aim of this analysis report is to provide insights into the process of performance of marketing campaign in the context of sports Group's business model. As a company specializing in managing sports items for customers, accurately determining the performance of the markering campaign is crucial for ensuring fair transactions and maintaining competitive advantage in the market.
 
-Estimating the offering time of a properties involves considering various factors, such as the number of bedrooms, the developer of each property, the area in squared meters for the property, The type of property either it is appartment, Villa, or others, the area where the property is located, and the delivery time of each property. By analyzing these factors and the market dynamics, we can develop a robust offering time strategy that aligns with customer expectations and market trends.
+Estimating the performance of marketing campaign to enhance customers to purchase more involves considering various factors, such as the number of available articles they selling, the countries where the company invests their products, the number of unit solds in retail week, The price of each unit, the promos applied during these intervals, the product groups they belongs to, their cost, style, and sizes, we can develop a robust a marketing strategy that aligns with customer expectations and market trends.
 
-In this analysis, we will leverage a comprehensive dataset that includes information about the properties features. It is important to note that there are still missing extra features that would be very informative for our target estimati.
+Through this analysis, we aim to gain insights into the key factors influencing performance of marketing campaign, identify patterns or trends in the market, and develop a data-driven approach that aligns with customer expectations and the competitive landscape. By leveraging the power of data science and statistical techniques, we can enhance our decision-making process and optimize our pricing strategy for imporving the marketing imapct to the customers.
 
-Through this analysis, we aim to gain insights into the key factors influencing property's offering time, identify patterns or trends in the market, and develop a data-driven approach for estimating offering time that aligns with customer expectations and the competitive landscape. By leveraging the power of data science and statistical techniques, we can enhance our decision-making process and optimize our pricing strategy for buying used cars from customers.
-
-The following sections of this report will go into the details of the analysis, including data preprocessing, descriptive statistics, correlation analysis, feature importance, competitor price analysis, provide recommendations based on the findings for the company.
+The following sections of this report will go into the details of the analysis, including data preprocessing, descriptive statistics, correlation analysis, feature importance, provide recommendations based on the findings for the company.
 
 ## Data Overview
-The analysis is based on given dataset that contains information relevant to estimating the offering time of a property.
+The analysis is based on given dataset that contains information relevant to performance of marketing campaign.
 
 The dataset includes the following columns:
-| Column | Description|
-|--------|------------|
-| detailed_property_id | Unique id representing the unit|
-| number_of_bedrooms | number of bedrooms per property|
-|  finishing_status | The status of each property whether it is (Finished, semi finished, unfinished, furnied).|
-| developer_name | Name of the developer.|
-| compound_name | Name of the compound.|
-| english_area_name | Name of the geographical area.|
-| english_prop_type_name | property type |
-|down_payment| down payment percentage from the total property. |
-|time_to_delivery|delivery date of the property ( in days)|
-|offering_time|the time for the property to be sold since offered time ( days)|
+|Column|Description|
+|--|--|
+|country| Country name, three unique countries.|
+|article| 6 digit article number, as unique identifier of an article
+|sales| total number of units sold in respective retail week
+|regular_price| recommended retail price of the article.
+|current_price| current selling price (weighted average over the week)
+|ratio| price ratio as current_price/regular_price, such that price discount is 1-ratio
+|retailweek| start date of the retailweek.
+|promo1| indicator for media advertisement, taking 1 in weeks of activation and 0 otherwise
+|promo2| indicator for store events, taking 1 in weeks with events and 0 otherwise
+|customer_id| customer unique identifier, one id per customer
+|article| 6 digit article number, as unique identifier of an article, 10 unique types or articles.
+|productgroup| product group the article belongs to
+|category| product category the article belongs to
+|cost| total costs of the article (assumed to be fixed over time)
+|style| description of article design.
+|sizes| size range in which article is available.
+|gender| gender of target consumer of the article.
+|rgb_*_main_color| intensity of the red (r), green (g), and blue (b) primaries of the article‘s main color, taking values [0,250]
+|rgb_*_sec_color| intensity of the red (r), green (g), and blue (b) primaries of the article‘s secondary color, taking values [0,250]
+|label| advertisement result after offering/sending/presenting the offer to the customer. 0 means the customer did not buy and 1 means the costomer did buy
+
+Understanding the description of the features of the dataset, and how label column was defined, It was assumed that, this dataset contains the sales made by customers, and label column identify the advertisement effect; So zero means the customer made the purchase but without being affected by a promo, and One means the customer made the purchase due to being affected by a promo.
 
 ## Data Preprocessing
 Before conducting the analysis, several preprocessing steps were performed on the dataset. 
 
 These steps included:
-- Handling duplicated unique id for property, the dropping of duplicated id, should not be in random, as there are extra dependant features we should take care of them, like making sure we don't drop propety where time to delivery feature is postive, and leave the duplicated one where the feature is negative.
-That's why dropping duplicated were handled using filtering according certain values in depondant features.
-- Hanlding negative values in time_to_delivery.
-- Handling missing values in both numerical and categorical features. 
-- Filtering outliers based on relevant features.
+
+Handling duplicated records in the data:
+- There are no complete duplication records in the dataset.
+- We have 3 columns of unique ID ['article_id_1', 'article_id_2', 'customer_id'], but according to our case in this dataset, they could be possible to be duplicated, as the duplication here indicates that, the same customer could have multiple records as he\she buy multiple times different items from different articles, so accordingly the articles ids could have duplications aswell.
+
+Hanlding negative values:
+- To make sure there are no logical data like cost or price to be in negative.
+
+Handling missing values:
+- In both numerical and categorical features, but there were not much to handle. 
+
+Filtering outliers:
+- Based on relevant features to have more robust and skewness free data.
+
+Handling mislabeled target data: 
+- This based on our understanding of the given dataset, for the target column 'label', where the zeros mean that the customer purchased the unit but without the impact of advertising campaign.
+- So to have an purchase due to marketing impact on the customers, there should be atleast one of the given promos: [promo by media ads or promo by store event] is applied. 
+- Noting that the percentage of customers who said to have purchased due to promo impact, but in real-time there were no promos applied was around 12.5% of the total customers.
 
 ## Analysis Insights
+Starting with the eda report generated for the corresponding data, some important insights to show:
+- There are no physical actuall missing values in the dataset, So we should check for a logical missing values in features, which means that some dummy values to represent a feature which are not logical for that feature, So to solve this, we will consider it missing, and try to handle the missing values.
+- There are skewness in following features [sales, regular_price, ratio].
+- Timeseries data starting from 2014 till 2017.
+- Feature: Sizes, Two unique values, to indicate either the customer choise store with multiple sizes varaity or not. Unfortunatly, in this dataset we can't determine which sizes are actually common.
+- Women is the largest customer type in the dataset, But have they the highest selling?.
+- A first impression from the data, It's shown that most of the sales are made without using the marketing campain, Also for the promos features, most of the data says that there were no promo at retail week.
+  - We need to analysis the small percentage of customers who bought with promo, what makes them bought it.
+  - Also, as the data shows that, there are a huge percentage of customers who already bought multiple time without any promos, So we need to invistige how to make them buy more with special promos related to them.
+
 #### Analysis: Individual Features Analayis of raw data
 
-![numerical_distplot](https://github.com/AhmedYousriSobhi/aCupOfTea/assets/66730765/60952028-586a-4d69-994b-10bc32dd3c6d)
+![Distribution of Numeric Features_distplot](https://github.com/AhmedYousriSobhi/aCupOfTea/assets/66730765/98310b6d-9e71-4760-932b-09cffb3655f8)
 
-By analysing the distribution of each of these features [number of bedrooms, unit area, down payment, time to delivery, offering time] by each car, It was identified the following
-- There are skewness in {offering_time, time_to_delivery} features.
-- Huge outliers in both [unit_area, time_to_delivery].
+By analysing the distribution of each of these features [sales, regular price, curren_price, ratio, promo by media ads, promo by store event, cost of article id 2, labels], It was identified the following
+- There are skewness in {sales, regular_price, ratio} features.
+- Huge outliers in both [ratio, cost of article id 2].
 
 #### Analysis: Boxplot for each numeric features
 Before Cleaning
-![numerical_boxplot](https://github.com/AhmedYousriSobhi/aCupOfTea/assets/66730765/1b71f756-cdb4-4c29-abc7-beeda2e9ddea)
+![boxplot analysis before cleaning_boxplot](https://github.com/AhmedYousriSobhi/aCupOfTea/assets/66730765/3c32da06-a525-442a-98cf-4043e5569779)
 
 After Cleaning
-![data_after_remove_outliers_boxplot](https://github.com/AhmedYousriSobhi/aCupOfTea/assets/66730765/883fd4dd-27dc-45db-844d-ba6b2f52ccf5)
+![Numeric Data After cleaning outliers_boxplot](https://github.com/AhmedYousriSobhi/aCupOfTea/assets/66730765/455f22c8-790e-4ab8-a8d2-784067a05939)
 
-#### Analysis: The most common used for property
-![finishing_status_countplot](https://github.com/AhmedYousriSobhi/aCupOfTea/assets/66730765/f0f295b3-570e-45b8-b35f-a54dd3cc44a8)
+### Analysis: Promo Usage
+#### What is the percentage of applied promo_1 & promo_2
+![Bar Plot: Promo Media Ads by Label](https://github.com/AhmedYousriSobhi/aCupOfTea/assets/66730765/feba04c5-88e7-4f74-97a1-7817f74744b9)
 
-![compound_name_countplot](https://github.com/AhmedYousriSobhi/aCupOfTea/assets/66730765/b6963f71-b803-4372-b737-c1bef4293146)
+Insights regarding this points:
+- 'Promo_media_ads': This promo was applied arount 6% during the purchases without promo, and around 10% during of the purchases with promo.
+- 'Promo_store_event': This promo was applied arount 0.45% during the purchases without promo, and around 0.85% during of the purchases with promo. This indicates that, this promo was not applied much like the promo_media_ads.
+- For both promos, the applied perecentage are high, so it is good indicator that the customers are willing to use them whenever they are applied.
+- The verticle lines in the bars are called Error Lines, which means the hieght of the bar could vary depend on this verticle line, as it requires more data to accurately plot.
 
-![developer_name_countplot](https://github.com/AhmedYousriSobhi/aCupOfTea/assets/66730765/037efb4c-ea5f-4bc6-833a-6d912b45ec74)
+#### What is the percentage of promo usage according to each country?
+![Percentage of Customers who purchase without   with promo by Country](https://github.com/AhmedYousriSobhi/aCupOfTea/assets/66730765/81946158-3f52-4cdc-93c4-8f005d797857)
 
-![english_area_name_countplot](https://github.com/AhmedYousriSobhi/aCupOfTea/assets/66730765/44b36d5e-01ed-49a2-85d5-7de17adc1122)
+- The distribution of promo usage in purchases across each country is almost similar, as around 14% of the purchase with promo, and the rest are without promo.
+- This indicates all the country have similar behaviour of of promo, So if a new promo is applied, then all the country will be behave the same.
+- So the marketing team should be more focused on hunting these couinties and deal with them similarly.
 
-![english_prop_type_name_countplot](https://github.com/AhmedYousriSobhi/aCupOfTea/assets/66730765/b0cd17eb-7b82-4d65-9b7c-c58d750156cc)
+#### What is most used category with promos?
+![Percentage of Customers who purchase without   with promo by category](https://github.com/AhmedYousriSobhi/aCupOfTea/assets/66730765/fe745984-28dd-4342-bc17-14df1ef1327e)
 
-There are some important insights we should take care of:
-- The customers like to have the property either [unfinshed - finshied] most.
-- Top developer names should invest more with are [PHD, MM, D, TMD, RM, OD].
-- The most popular compound are [S, B, ZE, J, TC].
-- Top 4 Area to target by the Marketing team should be [New Cairo - New Capital City - 6th October City - North Coast].
-- The most used property_type are Apartment, so it is recommended for the acquisition team to hunt for more Apartment property.
+- The same distibution for each category we have, the percentage is divided by [15% : 85%].
+- This indicates that the marketing team should also behave the same with each category.
 
-#### Analysis: Identify the most common property types and their distribution across different areas.
-![Most Common property types over area](https://github.com/AhmedYousriSobhi/aCupOfTea/assets/66730765/4fe08456-1be3-4896-aa4d-fddbee325266)
+#### What is most used product group with promos?
+![Percentage of Customers who purchase without   with promo by productgroup](https://github.com/AhmedYousriSobhi/aCupOfTea/assets/66730765/f887e822-6eb4-403a-95d9-2a7b1b339c86)
 
-Some insights for the businees team:
-- Areas like [North Coast, Ain Sokhna], where are used mainly for summer vactions, are full of [Chalet, Twinhouse]
-- Main cities like [6th of October City, New Cairo, New Capital City, Mokstakbal City] are mainly occupied by Appartement.
-- In New Cairo, where there are set of industrial companies, so most of employees choose to rent Studios, That's the reason for having large percentage of property type "Studio".
+- The same distibution for each product gourp we have, the percentage is divided by [15% : 85%].
+- This indicates that the marketing team should also behave the same with each product group.
 
-So the aquasation team should be more focused on hunting these types of properties depending on each Area.
+#### According to arcticle_2 & sizes which are the most used promo?
+![Percentage of Customers who purchase without   with promo by article_id_2](https://github.com/AhmedYousriSobhi/aCupOfTea/assets/66730765/f0db0be3-a1c3-451b-bfcd-de4acbbbb0dc)
+![Percentage of Customers who purchase without   with promo by sizes](https://github.com/AhmedYousriSobhi/aCupOfTea/assets/66730765/e3ea3a93-d670-4bf2-bee5-2c6f2b09c47b)
 
-#### Analysis: The distribution of finishing statuses (finished, semi-finished, unfinished) across different property types.Analyze the distribution of finishing statuses (finished, semi-finished, unfinished) across different property types.
-![Finishing status distribution across property](https://github.com/AhmedYousriSobhi/aCupOfTea/assets/66730765/412b6e2e-ddd5-4e3f-b5a5-50032fd81f96)
+- Even over the articles id 2 types & size types, they have the same percentage distribution across purchase without & with promos.
+ 
+From All these insights, they can guide our promo impact strategies, We can determine which country, article type, size, and category response to promo impact.
 
-Marketing team should target properties like [Chalet, Office, Clinic] in 'finished' status, in the opposite side, properties like [Apartment, Villa, Retail, Townhouse, Duplex] should be in 'Not finished' status.
+### Analaysis: Color Features
+The RGB values for the primary and secondary articles in the dataset represent the intensity of the red, green, and blue primaries of the respective colors.
 
-#### Analysis: Investigate the relationship between property area (unit_area) and the number of bedrooms to understand the typical size of properties in different categories.
-![Relationship between Property Area and Number of Bedrooms](https://github.com/AhmedYousriSobhi/aCupOfTea/assets/66730765/e83b7848-d9db-4aab-8206-188764bfa50c)
+#### What is the most popular main and secondary colors?
+![Barplot Percentage of each main color](https://github.com/AhmedYousriSobhi/aCupOfTea/assets/66730765/f8f4f8c4-5f7f-4d44-8a25-a664f9dd2c4d)
+![Barplot Percentage of each sec color](https://github.com/AhmedYousriSobhi/aCupOfTea/assets/66730765/3925cc1c-100d-49c1-a6a9-d065aecc6848)
 
-![Distribution of Property Area for Each Number of Bedrooms](https://github.com/AhmedYousriSobhi/aCupOfTea/assets/66730765/d19e34c2-69f0-4093-a8d5-cdffd76406cd)
-#### Insights:
-- There are postive correlation seen in the relation between property Area & number of bedrooms, as the larger the area, the higher the number of bedroom it has.
-- Most of [Offices, Duplex, Retails] have small area, so correspondingly have no bedrooms. Compared to Apartments, which have middle Area size, with around 2 to 4 bedrooms.
+- The main colors are distributed equivally, unlike the secondary color, where rosybrown is the most popular in all of them.
 
-To understand Violin plot, there are some aspects to consider:
-| Aspect | Description|
-|--------|------------|
-|Distribution of Data| The width of the violin plot represents the density of data points at different price level. <br/>A wider section indicates a higher concentration of data points, which a narrower section indicates a lower concentration.|
-|Median| The white dot within the violin plot represents the median value of the data distribution. <br/>It provides an estimate of the central tendency of the data.|
-|Interquartile Range (IQR)| The box inside the violin plot represents the interquartile range, which spans from the 25th precentile (lower quartile) to the 75th precentile (upper quartile) of the data. <br/>It provides information about the spread and variability of the data.|
-|Whiskers| The thin lines extending from the box (IQR) represents the data range within a certain threshould of the IQR. <br/>They typically cover a certain percentage of the data, such as 1.5 times the IQR. <br/>Any data points outside the whiskers are considered outliers.|
-|Symmetry| The shape of the violin plot can provide insights into the symmetry or skewness of the data distribution. <br/>A symmetric distribution will have similar shapes on both sides of the median, while a skewed distribution will have a longer tail on one side.|
-
-Insights: Using Violin plot tell us the following:
-- From distribution of price over car model:
-    - The width of each violin indicates the density of area sizes for a particular bedrooms number. A narrorw section in the violin plot like in [4, 5] bedrooms, indicates a more dispersed pricing pattern. A wider section in the violin plot like in [0, 1, 2, 3] indicate a high concentration of properties within a specific area range.
-    - The whitedot in the violin plots indicates the median area value (in square Meters) for each car model, which give idea of typical price range. So all models  have similar range of prices, except for "Juke Platinium" has a significantly higher price.
-- From distribution of area size over number of bedrooms:
-    - The whitedot indicates that, the median area value per each bedrooms numbers is following a rising trend over each increasing bedrooms numbers.
-  
-From All these insights, they can guide our pricing strategies, We can determine which car models command higher prices due to their perceived value, understand the range of prices that customers are willing to pay for different models, and identify any outliers in the prices.
-
-#### Anlaysis: Evalulate the performance of different developers
-![developer Market Acquisition](https://github.com/AhmedYousriSobhi/aCupOfTea/assets/66730765/262995c1-1751-4dfe-96fd-052d13570845)
+#### Which main/secondary color has more promos applied during purchases?
+![Percentage of Customers who purchase without   with promo by main_closest_color](https://github.com/AhmedYousriSobhi/aCupOfTea/assets/66730765/216b7f64-c6e3-431d-917b-c9e8f79bacd6)
+![Percentage of Customers who purchase without   with promo by sec_closest_color](https://github.com/AhmedYousriSobhi/aCupOfTea/assets/66730765/426604c6-3914-4bd8-b321-fc5bd5cf8e4f)
 
 
-#### Analysis: Features Correlation
-![correlation](https://github.com/AhmedYousriSobhi/aCupOfTea/assets/66730765/71f1c530-0b4a-49db-8fd5-3a9da6373f63)
+### Anlaysis: What is the most popular category by gender?
+![category_distribution_over_gender](https://github.com/AhmedYousriSobhi/aCupOfTea/assets/66730765/b9d16ad8-07cb-4be8-92cb-e6622a63f763)
+
+- Women are the highest gender type who bought almost all the categories, except 'FootBall Generic' category.
+
+### Analysis: Promo Effectiveness
+#### How many week were the promo applied during?
+![Comparison of Number of Customers during Promotion and Non-Promotion Periods](https://github.com/AhmedYousriSobhi/aCupOfTea/assets/66730765/c7171ab8-0588-4e15-a063-b90c4acf28e3)
+
+The promo duration were very little, that the impact with not enough to have in customers purchases.
+
+#### During promo is being applied, which sales were higher due to promo effect or normal regular sales?
+![Promo Sales vs Regular Sales](https://github.com/AhmedYousriSobhi/aCupOfTea/assets/66730765/934c8608-5e9b-4128-9b46-84fd6b62e096)
+
+This shows that, there are no a signle week where the sales were high because of promo applied.
+
+### Analysis: Time Series
+#### Sales time series distribution
+![sales trend over time](https://github.com/AhmedYousriSobhi/aCupOfTea/assets/66730765/b6fca8c5-1b48-4db1-90a7-138a6f927ee0)
+
+- There are fluctuation over the weeks of year in sales.
+- There are some pattern where the sales increase in the summer time, early winter time, and decrease the rest of the year.
+
+#### Sales during promo applied weeks
+![sales trend over time with promo applied](https://github.com/AhmedYousriSobhi/aCupOfTea/assets/66730765/571bbe83-7af0-48be-95cb-ca610af3bc9a)
+
+To get better visualization how much the sales were during the weeks applied to:
+![ales Trend Over Time with Promo Weeks](https://github.com/AhmedYousriSobhi/aCupOfTea/assets/66730765/4422eb7a-fbcf-4d80-84c2-2139a2ee4360)
+
+#### Sales across each country
+![Sales_Trend_over_country](https://github.com/AhmedYousriSobhi/aCupOfTea/assets/66730765/3caa6385-eb42-4665-a843-ec1fe16d2cfd)
+
+- This shows that, Germany has the mist flucations during each week.
 
 ## Feature Engineering
 Creating additional informative feature will have huge impact in model training process. So the recommened features to engineered are:
 | Feature | Description|
 |--------|------------|
-|number of bedrooms per area| the ratio between number of bedrooms per unit area in square meter. <br/>This give insigts about the luxary in property size.|
-| down payment per delivery time|The ratio between number of bedrooms per unit area in square meter.|
-|Average delivery time based on Developer|Calculate the average of 'time_to_delivery' based on each property per each Developer.|
-|Developer market share over property| Indicate how many percentage in total property does each Developer contributes|
-|Developer Performance| Calculate how much percentage each Developer has of property types|
-|Average delivery time based on Area|Calculate the average of 'time_to_delivery' based on each property per each Area.|
-|Area market share over property| Indicate how many percentage in total property does each area contributes|
-|Area Performance| Calculate how much percentage each area has of property types|
+|Discount| The discount value for current price of the unit comapred the regular price.|
+| Main Closest Color| The main unit closest color based in the RGB values|
+| Secondary Closest Color| The secondary unit closest color based in the RGB values|
+|Time based Features|Time related features to the timestamp featuers 'retailweek' extracted like [year, month, day, day of week]|
+
+## Features Correlation
+![correlation](https://github.com/AhmedYousriSobhi/aCupOfTea/assets/66730765/e3da1413-d2ce-4917-b33f-a8a0ed1bf29c)
+- There is a negative correlation between target column 'label' and discount feature.
+- Also a high postive correlation between current price and regular price features.
 
 ## Model Insights
-Estimating property offering time is a regression problem, So one of the most powerfull model is XGBOOST Regressor, which was used here in this project.
+Prediction the performance of marketing campaign is a classification problem, So one of the most powerfull model is XGBOOST Classification, which was used here in this project.
 
-The overall RMSE were [Training set: 35.07, Validation set: 48.05]
+The overall accuracy were [Training set: 88% , Validation set: 86%]
+
+The confustion metric over the training set is:
+|               | Positive Prediction | Negative Prediction|
+|---------------|---------------------|--------------------|
+| Actual Positive | True Positive (TP)  | False Negative (FN)|
+| Actual Negative | False Positive (FP) | True Negative (TN)|
+
+|               | Positive Prediction | Negative Prediction|
+|---------------|---------------------|--------------------|
+| Actual Positive | 47382  | 288|
+| Actual Negative | 6544 | 1222|
+
+So this model has high precision, but low Recall in case of the detective the postive values, which means when this model detect that the customer will purchase due to the market campaign, it can correctly detect this is a 1 , but can't detect the all customers who actually purchase due to market campain, so it will loss actaully customers.
 
 For model tuning and imporvement, A baseline model will be used to be a baseline for each new developed model, and compare the performance.
 
-Notes to be considered for more improvement:
-- There are negative values in the prediction model, should be first treated to be at least be zeros.
-- During the feature engineering, during calculation the average time_to_delivery per property, there were missing values, which should be imputed.
-  - For the current time, it was imputed with -1, which is not accurate, but also can't be filled with zeros.
-  - The correct way is to fit linear regressor model, to calculate the appropriate values for the missing values.
-
-Note: 
-- As we are dealing with Regression problem, we don't have such Accuracy metric, So Depending on Bussiness, An accuracy metric could be defined as measurable & understandable method.
-- A suggested accuracy metric, is depending on relative features, we could calculate the [mean, standard deviation] as a margin for each offering time. So this problem would be converted into classification of whether the prediction are within the margin of true values or not.
-  
 ## Feature Importance
 According to the used features after all preprocessing steps inlcuding [feature engineering to create new features, imputing for missing values, scalling for numerical values, one-hot encoding for categorical values], More important features were created.
 
 To get more details regarding the first top 20 features detected by current model.
-![feature_importance_v0](https://github.com/AhmedYousriSobhi/aCupOfTea/assets/66730765/d299e48b-f969-4ede-9751-60c31f1eb8c6)
+![feature_importance_v0](https://github.com/AhmedYousriSobhi/aCupOfTea/assets/66730765/8ce38f95-a588-4e06-895a-57fd55875d4e)
 
 ## Recommendations
 Based on the analysis conducted, the following recommendations are suggested:
-- Regularly monitor and update offering time estimation strategies based on the market trends and developers' performance and delivery time.
-- Consider the impact of specific features on property's offering time estimation decisions.
-- Continuously collect and analysis data on developers performance and market share, and also each area contribution in each property to maintain a competitive edge.
+- Regularly monitor and update promos weeks strategies based on the market trends and customers' behaviour.
+- Consider the impact of specific features on the marketing campaign performance.
+- Continuously collect and analysis data on market and customers preferences, and also each country contribution in each market to maintain a competitive edge.
   
 ## Conclution
-In conclusion, the analysis of the properties dataset has provided valuable insights into property type, number of bedrooms, developer performance and their market share, and areas contribution in each property. These insights can assist the company in making informed decisions regarding estimation of property offering time, inventory management, and understanding customer preferences. It is crucial for the company to leverage these findings to refine its strategies, maximize profitability, and establish a strong foothold in the competitive real state market.
+In conclusion, the analysis of the company dataset has provided valuable insights into unit types, countries market share, categories the company have and their impact of each promos they offer. These insights can assist the company in making informed decisions regarding promos values, their time to apply, which to apply to, to whom, and understanding customer preferences. It is crucial for the company to leverage these findings to refine its strategies, maximize profitability, and establish a strong foothold in the competitive market.
