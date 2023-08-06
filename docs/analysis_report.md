@@ -1,4 +1,3 @@
-# Fixed Solutions
 # Analysis Report: Sports Group Marketing Campaign Performance
 
 ## Introduction
